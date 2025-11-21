@@ -1,0 +1,43 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "dissent"
+version = "0.0.1"
+description = "Analyzing dissent in state supreme courts"
+authors = [
+  { name = "Aerith Netzer" },
+]
+
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    
+]
+dependencies = [
+    "loguru",
+    "mkdocs",
+    "pandas>=2.3.3",
+    "pandas-stubs>=2.3.2.250926",
+    "pip",
+    "python-dotenv",
+    "ruff",
+    "tqdm",
+    "typer",
+]
+requires-python = "~=3.12.0"
+
+
+[tool.ruff]
+line-length = 99
+src = ["dissent"]
+include = ["pyproject.toml", "dissent/**/*.py"]
+
+[tool.ruff.lint]
+extend-select = ["I"]  # Add import sorting
+
+[tool.ruff.lint.isort]
+known-first-party = ["dissent"]
+force-sort-within-sections = true
+
