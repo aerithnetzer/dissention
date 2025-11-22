@@ -55,7 +55,7 @@ dataset:
 		wget --directory-prefix=data/raw  https://storage.courtlistener.com/bulk-data/dockets-2024-12-31.csv.bz2; \
 		echo Opinions cluster file downloaded!; \
 	fi
-	uv run dissent/dataset.py
+	uv run python -m cudf.pandas dissent/dataset.py
 ## Set up Python interpreter environment
 .PHONY: create_environment
 create_environment:
