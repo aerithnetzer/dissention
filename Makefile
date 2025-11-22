@@ -17,7 +17,9 @@ requirements:
 	uv sync
 	
 
-
+.PHONY: analysis
+analysis:
+	uv run dissent/modeling/analysis.py
 
 ## Delete all compiled Python files
 .PHONY: clean

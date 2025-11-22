@@ -9,22 +9,6 @@ from dissent.config import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR
 app = typer.Typer()
 
 
-def merge_dataframes(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
-    """
-    Merges the dataframes. Assumes that `opinions` is left table and `opinions_clusters` is right label.
-    """
-    df = pd.merge(left, right, how="inner", left_on="cluster_id", right_on="id")
-    return df
-
-
-def load_dataframe(path: Path, nrows: int | None) -> pd.DataFrame:
-    if isinstance(nrows, int):
-        df = pd.read_csv(path, compression="bz2", quotechar="`", nrows=nrows)
-    else:
-        df = pd.read_csv(path, compression="bz2", quotechar="`")
-    return df
-
-
 @app.command()
 def main():
     """
@@ -34,20 +18,29 @@ def main():
 
     logger.info("Processing dataset")
     logger.info("Now loading dataframes")
-    opinions = load_dataframe(RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2", nrows=None)
-    opinion_clusters = load_dataframe(
-        path=RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2", nrows=None
+
+    opinions = pd.read_csv(
+        RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
+        usecols=["id", "cluster_id", "type"],
     )
-    dockets: pd.DataFrame = load_dataframe(
-        path=RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", nrows=None
+
+    opinion_clusters = pd.read_csv(
+        RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
+        usecols=["id", "date_filed", "docket_id"],
+        quotechar="`",
     )
+
+    print(opinion_clusters.columns)
+    dockets: pd.DataFrame = pd.read_csv(
+        RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", nrows=100_000, quotechar="`"
+    )
+    print(dockets.columns)
 
     # First join: opinions with opinion_clusters
     df = opinions.set_index("cluster_id").join(
         opinion_clusters.set_index("id"), how="inner", rsuffix="_cluster"
     )
 
-    # Second join: result with dockets
     df = df.join(dockets.set_index("id"), on="docket_id", how="inner", rsuffix="_docket")
 
     df.to_csv(INTERIM_DATA_DIR / "dataset.csv.bz2", quotechar="`")
