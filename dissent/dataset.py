@@ -31,9 +31,9 @@ def main():
     This function takes as input the opinions csv and opinion clusters csv.
     Merges on cluster IDs, and then filters on relevant courts.
     """
+
     logger.info("Processing dataset")
     logger.info("Now loading dataframes")
-
     opinions = load_dataframe(RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2", nrows=None)
     opinion_clusters = load_dataframe(
         path=RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2", nrows=None
@@ -42,10 +42,14 @@ def main():
         path=RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", nrows=None
     )
 
-    df = pd.merge(
-        left=opinions, right=opinion_clusters, how="inner", left_on="cluster_id", right_on="id"
+    # First join: opinions with opinion_clusters
+    df = opinions.set_index("cluster_id").join(
+        opinion_clusters.set_index("id"), how="inner", rsuffix="_cluster"
     )
-    df = pd.merge(df, dockets, how="inner", left_on="docket_id", right_on="id")
+
+    # Second join: result with dockets
+    df = df.join(dockets.set_index("id"), on="docket_id", how="inner", rsuffix="_docket")
+
     df.to_csv(INTERIM_DATA_DIR / "dataset.csv.bz2", quotechar="`")
 
 
