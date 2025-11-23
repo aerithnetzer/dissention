@@ -19,7 +19,7 @@ requirements:
 
 .PHONY: analysis
 analysis:
-	uv run dissent/modeling/analysis.py
+	uv run python -m cudf.pandas dissent/modeling/analysis.py
 
 ## Delete all compiled Python files
 .PHONY: clean

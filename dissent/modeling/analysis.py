@@ -1,3 +1,4 @@
+from loguru import logger
 import pandas as pd
 
 from dissent.config import INTERIM_DATA_DIR
@@ -6,9 +7,14 @@ from dissent.config import INTERIM_DATA_DIR
 
 
 def main():
-    df = pd.read_csv(INTERIM_DATA_DIR / "dataset.csv.bz2")
-    print(df.columns)
-    print(df[["type"]].head())
+    df = pd.read_csv(
+        INTERIM_DATA_DIR / "dataset.csv.bz2", usecols=["date_filed", "type", "court_id"]
+    )
+    print(len(df))
+    # Filter for dissents
+    df = df[df["type"].isin(["nc"])]
+
+    logger.info(df.head())
 
 
 if __name__ == "__main__":
