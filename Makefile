@@ -40,7 +40,8 @@ format:
 	ruff check --fix
 	ruff format
 
-.PHONY: dataset
+## Make dataset
+.PHONY: data
 dataset:
 	if [ ! -f data/raw/opinions-2024-12-31.csv.bz2 ]; then \
 		echo Opinions file not found! Downloading the file. \(This could take a while.\); \
@@ -58,6 +59,7 @@ dataset:
 		echo Opinions cluster file downloaded!; \
 	fi
 	uv run python -m cudf.pandas dissent/dataset.py
+
 ## Set up Python interpreter environment
 .PHONY: create_environment
 create_environment:
@@ -67,17 +69,6 @@ create_environment:
 	@echo ">>> Unix/macOS: source ./.venv/bin/activate"
 	
 
-
-
-#################################################################################
-# PROJECT RULES                                                                 #
-#################################################################################
-
-
-## Make dataset
-.PHONY: data
-data: requirements
-	$(PYTHON_INTERPRETER) dissent/dataset.py
 
 
 #################################################################################
