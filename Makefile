@@ -43,6 +43,11 @@ format:
 ## Make dataset
 .PHONY: data
 dataset:
+	mkdir data
+	mkdir data/interim
+	mkdir data/raw
+	mkdir data/processed
+	mkdir data/external
 	if [ ! -f data/raw/opinions-2024-12-31.csv.bz2 ]; then \
 		echo Opinions file not found! Downloading the file. \(This could take a while.\); \
 		wget --directory-prefix=data/raw https://storage.courtlistener.com/bulk-data/opinions-2024-12-31.csv.bz2; \
