@@ -21,19 +21,19 @@ def main():
     opinions = pd.read_csv(
         RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
         usecols=["id", "cluster_id", "type"],
+        nrows=10,
     )
 
+    logger.info("Finished reading opinions")
     opinion_clusters = pd.read_csv(
         RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
         usecols=["id", "date_filed", "docket_id"],
         quotechar="`",
     )
 
-    print(opinion_clusters.columns)
-    dockets: pd.DataFrame = pd.read_csv(
-        RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", nrows=100_000, quotechar="`"
-    )
-    print(dockets.columns)
+    logger.info("Finished reading opinion clusters")
+    dockets: pd.DataFrame = pd.read_csv(RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", quotechar="`")
+    logger.info("Finished reading dockets")
     logger.info("Finished reading dataframes")
     # First join: opinions with opinion_clusters
     df = opinions.set_index("cluster_id").join(
