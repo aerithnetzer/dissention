@@ -11,7 +11,7 @@ authors = [{ name = "Aerith Netzer" }]
 readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
-  "cudf-cu13==25.10",
+  "cudf-cu12==25.10",
   "loguru",
   "mkdocs",
   "pandas>=2.3.3",
@@ -35,3 +35,8 @@ extend-select = ["I"] # Add import sorting
 [tool.ruff.lint.isort]
 known-first-party = ["dissent"]
 force-sort-within-sections = true
+
+[tool.uv]
+environments = [
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64'"
+]
