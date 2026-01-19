@@ -27,7 +27,7 @@ def main():
             "date_filed",
             # add ONLY what you actually need
         ],
-        nrows=50,
+        nrows=1_000_000,
         quotechar="`",
         compression="bz2",
     )
@@ -40,7 +40,7 @@ def main():
             "cluster_type",
         ],
         quotechar="`",
-        nrows=50,
+        nrows=1_000_000,
         compression="bz2",
     )
 
@@ -67,7 +67,6 @@ def main():
             # add ONLY needed columns
         ],
         quotechar="`",
-        nrows=50,
         compression="bz2",
         chunksize=250_000,  # tune based on RAM
     ):
