@@ -22,64 +22,63 @@ def main():
     # ---- 1. Load SMALLER tables first (column-pruned) ----
     dockets = pd.read_csv(
         RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2",
-        usecols=[
-            "id",
-            "court_id",
-            "date_filed",
-            # add ONLY what you actually need
-        ],
         nrows=1_000,
+        usecols=["id", "date_created", "court_id"],
         quotechar="`",
         compression="bz2",
     )
-    logger.debug("Opinion clusters columns: ", dockets.columns)
+    logger.debug(
+        f"Docket columns: {dockets.columns}",
+    )
     opinion_clusters = pd.read_csv(
         RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
-        usecols=[
-            "id",
-            "precedential_status",
-            "cluster_type",
-        ],
+        # usecols=["id", "date_filed", "docket_id"],
         quotechar="`",
         nrows=1_000,
         compression="bz2",
     )
-    logger.debug("Opinion clusters columns: ", opinion_clusters.columns)
+    logger.debug(
+        f"Opinions cluster columns: {opinion_clusters.columns}",
+    )
     # ---- 2. Merge small tables first ----
-    base = dockets.merge(opinion_clusters, on="id", how="inner")
-
+    base = dockets.merge(opinion_clusters, left_on="id", right_on="docket_id", how="inner")
+    logger.debug(f"Base columns: {base.columns}")
     # Optional: filter courts EARLY
     # base = base[base["court_id"].isin(RELEVANT_COURTS)]
 
     # ---- 3. Build ID whitelist ----
-    valid_ids = set(base["id"].astype("int64"))
+    valid_ids = set(base["id_x"].astype("int64"))
 
     # ---- 4. Prepare Parquet writer ----
     output_path = PROCESSED_DATA_DIR / "dataset.parquet"
     parquet_writer = None
 
     # ---- 5. Stream opinions in chunks ----
-    for chunk in pd.read_csv(
-        RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
-        usecols=[
-            "id",
-            "plain_text",
-            "author_id",
-            # add ONLY needed columns
-        ],
-        quotechar="`",
-        compression="bz2",
-        chunksize=250_000,  # tune based on RAM
+    for chunk in tqdm(
+        pd.read_csv(
+            RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
+            usecols=[
+                "id",
+                "plain_text",
+                "author_id",
+                # add ONLY needed columns
+            ],
+            quotechar="`",
+            compression="bz2",
+            chunksize=10_000,  # tune based on RAM
+        )
     ):
         # Downcast aggressively
         chunk["id"] = chunk["id"].astype("int64")
 
-        logger.debug("Opinions columns: ", chunk.columns)
+        logger.debug(f"Opinions columns: {chunk.columns}")
         # Filter BEFORE merge
         chunk = chunk[chunk["id"].isin(valid_ids)]
         if chunk.empty:
+            logger.info(f"{len(chunk)} valid ids found. Skipping writing.")
             continue
 
+        logger.info(f"{len(chunk)} valid ids found.")
         merged = base.merge(chunk, on="id", how="inner")
 
         table = pa.Table.from_pandas(merged, preserve_index=False)
