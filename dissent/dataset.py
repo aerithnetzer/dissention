@@ -1,6 +1,8 @@
 from pathlib import Path
 from loguru import logger
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import typer
 from tqdm import tqdm
 from dissent.config import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR
@@ -31,7 +33,7 @@ def main():
         quotechar="`",
         compression="bz2",
     )
-
+    logger.debug("Opinion clusters columns: ", dockets.columns)
     opinion_clusters = pd.read_csv(
         RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
         usecols=[
@@ -43,7 +45,7 @@ def main():
         nrows=1_000_000,
         compression="bz2",
     )
-
+    logger.debug("Opinion clusters columns: ", opinion_clusters.columns)
     # ---- 2. Merge small tables first ----
     base = dockets.merge(opinion_clusters, on="id", how="inner")
 
@@ -73,6 +75,7 @@ def main():
         # Downcast aggressively
         chunk["id"] = chunk["id"].astype("int64")
 
+        logger.debug("Opinions columns: ", chunk.columns)
         # Filter BEFORE merge
         chunk = chunk[chunk["id"].isin(valid_ids)]
         if chunk.empty:
