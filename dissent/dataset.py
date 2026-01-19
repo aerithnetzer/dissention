@@ -29,7 +29,7 @@ def main():
             "date_filed",
             # add ONLY what you actually need
         ],
-        nrows=1_000_000,
+        nrows=1_000,
         quotechar="`",
         compression="bz2",
     )
@@ -42,7 +42,7 @@ def main():
             "cluster_type",
         ],
         quotechar="`",
-        nrows=1_000_000,
+        nrows=1_000,
         compression="bz2",
     )
     logger.debug("Opinion clusters columns: ", opinion_clusters.columns)
