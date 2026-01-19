@@ -40,9 +40,8 @@ format:
 	ruff check --fix
 	ruff format
 
-## Make dataset
-.PHONY: data
-dataset:
+.PHONY: download
+download:
 	if [ ! -f data/raw/opinions-2024-12-31.csv.bz2 ]; then \
 		echo Opinions file not found! Downloading the file. \(This could take a while.\); \
 		wget --directory-prefix=data/raw https://storage.courtlistener.com/bulk-data/opinions-2024-12-31.csv.bz2; \
@@ -58,6 +57,10 @@ dataset:
 		wget --directory-prefix=data/raw  https://storage.courtlistener.com/bulk-data/dockets-2024-12-31.csv.bz2; \
 		echo Opinions cluster file downloaded!; \
 	fi
+
+## Make dataset
+.PHONY: data
+data:
 	uv run python -m cudf.pandas dissent/dataset.py
 
 ## Set up Python interpreter environment
