@@ -64,7 +64,7 @@ def main():
         RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
         usecols=[
             "id",
-            "opinion_text",
+            "plain_text",
             "author_id",
             # add ONLY needed columns
         ],
