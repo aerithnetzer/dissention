@@ -14,7 +14,6 @@ def process(dockets: pd.DataFrame, opinion_clusters: pd.DataFrame):
     return True
 
 
-@app.command()
 def main():
     """
     Memory-efficient merge of dockets, opinions, and opinion clusters.
@@ -102,4 +101,4 @@ def main():
 
 
 if __name__ == "__main__":
-    app()
+    main()
