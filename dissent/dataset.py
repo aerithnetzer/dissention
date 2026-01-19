@@ -15,32 +15,88 @@ def process(dockets: pd.DataFrame, opinion_clusters: pd.DataFrame):
 @app.command()
 def main():
     """
-    This function takes as input the opinions csv and opinion clusters csv.
-    Merges on cluster IDs, and then filters on relevant courts.
+    Memory-efficient merge of dockets, opinions, and opinion clusters.
     """
 
-    dockets: pd.DataFrame = pd.read_csv(RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2", quotechar="`")
-    opinions_clusters: pd.DataFrame = pd.read_csv(
+    # ---- 1. Load SMALLER tables first (column-pruned) ----
+    dockets = pd.read_csv(
+        RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2",
+        usecols=[
+            "id",
+            "court_id",
+            "date_filed",
+            # add ONLY what you actually need
+        ],
+        nrows=50,
+        quotechar="`",
+        compression="bz2",
+    )
+
+    opinion_clusters = pd.read_csv(
         RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
+        usecols=[
+            "id",
+            "precedential_status",
+            "cluster_type",
+        ],
         quotechar="`",
+        nrows=50,
         compression="bz2",
     )
-    opinions: pd.DataFrame = pd.read_csv(
+
+    # ---- 2. Merge small tables first ----
+    base = dockets.merge(opinion_clusters, on="id", how="inner")
+
+    # Optional: filter courts EARLY
+    # base = base[base["court_id"].isin(RELEVANT_COURTS)]
+
+    # ---- 3. Build ID whitelist ----
+    valid_ids = set(base["id"].astype("int64"))
+
+    # ---- 4. Prepare Parquet writer ----
+    output_path = PROCESSED_DATA_DIR / "dataset.parquet"
+    parquet_writer = None
+
+    # ---- 5. Stream opinions in chunks ----
+    for chunk in pd.read_csv(
         RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
+        usecols=[
+            "id",
+            "opinion_text",
+            "author_id",
+            # add ONLY needed columns
+        ],
         quotechar="`",
+        nrows=50,
         compression="bz2",
-    )
+        chunksize=250_000,  # tune based on RAM
+    ):
+        # Downcast aggressively
+        chunk["id"] = chunk["id"].astype("int64")
 
-    df = pd.merge(dockets, opinions, how="inner", on="id")
-    df = pd.merge(df, opinions_clusters, "inner", on="id")
+        # Filter BEFORE merge
+        chunk = chunk[chunk["id"].isin(valid_ids)]
+        if chunk.empty:
+            continue
 
-    print("Opinion columns: \n", opinions.columns)
-    print("Docket columns: \n", dockets.columns)
-    print("Clusters columns: \n", opinions_clusters.columns)
-    print("Moiged columns: \n", df.columns)
-    print("Moiged \n", df.head())
+        merged = base.merge(chunk, on="id", how="inner")
 
-    df.to_parquet(PROCESSED_DATA_DIR / "dataset.parquet", compression="gzip")
+        table = pa.Table.from_pandas(merged, preserve_index=False)
+
+        if parquet_writer is None:
+            parquet_writer = pq.ParquetWriter(
+                output_path,
+                table.schema,
+                compression="gzip",
+            )
+
+        parquet_writer.write_table(table)
+
+        # Explicit cleanup
+        del chunk, merged, table
+
+    if parquet_writer:
+        parquet_writer.close()
 
 
 if __name__ == "__main__":
