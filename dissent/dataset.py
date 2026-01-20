@@ -40,22 +40,23 @@ def main():
     )
     # ---- 2. Merge small tables first ----
     base = dockets.merge(opinion_clusters, left_on="id", right_on="docket_id", how="inner")
+    base["id_x"] = pd.to_numeric(base["id_x"], errors="raise").astype("int64")
+    base = base.rename(columns={"id_x": "cluster_id"})
+
+    base["cluster_id"] = base["cluster_id"].astype("int64")
+
+    base = base.drop(columns=["id_y"], errors="ignore")
+
     logger.debug(f"Base columns: {base.columns}")
     # Optional: filter courts EARLY
     # base = base[base["court_id"].isin(RELEVANT_COURTS)]
 
-    # ---- 3. Build ID whitelist ----
-    valid_ids = set(base["id_x"].astype("int64"))
-
     # ---- 4. Prepare Parquet writer ----
     output_path = PROCESSED_DATA_DIR / "dataset.parquet"
     parquet_writer = None
-    opinions = pd.read_csv(
-        RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2", quotechar="`", compression="bz2", nrows=100
-    )
-    logger.debug(f"Opinions columns: {opinions.columns}")
 
     # ---- 5. Stream opinions in chunks ----
+    i = 0
     for chunk in tqdm(
         pd.read_csv(
             RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
@@ -67,38 +68,28 @@ def main():
             ],
             quotechar="`",
             compression="bz2",
-            chunksize=1_000_000,  # tune based on RAM
+            chunksize=100_000,  # tune based on RAM
         )
     ):
         # Downcast aggressively
         chunk["id"] = chunk["id"].astype("int64")
+        chunk["cluster_id"] = pd.to_numeric(chunk["cluster_id"], errors="raise").astype("int64")
 
         logger.debug(f"Opinions columns: {chunk.columns}")
         # Filter BEFORE merge
-        chunk = chunk[chunk["id"].isin(valid_ids)]
+        merged = base.merge(
+            chunk,
+            on="cluster_id",
+            how="inner",
+        )
+        chunk.to_parquet(PROCESSED_DATA_DIR / f"dataset_{i:5d}")
         if chunk.empty:
             logger.info(f"{len(chunk)} valid ids found. Skipping writing.")
             continue
 
         logger.info(f"{len(chunk)} valid ids found.")
-        merged = base.merge(chunk, right_on="id", left_on="cluster_id", how="inner")
 
-        table = pa.Table.from_pandas(merged, preserve_index=False)
-
-        if parquet_writer is None:
-            parquet_writer = pq.ParquetWriter(
-                output_path,
-                table.schema,
-                compression="gzip",
-            )
-
-        parquet_writer.write_table(table)
-
-        # Explicit cleanup
-        del chunk, merged, table
-
-    if parquet_writer:
-        parquet_writer.close()
+        i += 1
 
 
 if __name__ == "__main__":
