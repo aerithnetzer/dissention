@@ -52,8 +52,6 @@ def main():
     # base = base[base["court_id"].isin(RELEVANT_COURTS)]
 
     # ---- 4. Prepare Parquet writer ----
-    output_path = PROCESSED_DATA_DIR / "dataset.parquet"
-    parquet_writer = None
 
     # ---- 5. Stream opinions in chunks ----
     i = 0
@@ -68,7 +66,7 @@ def main():
             ],
             quotechar="`",
             compression="bz2",
-            chunksize=100_000,  # tune based on RAM
+            chunksize=500_000,  # tune based on RAM
         )
     ):
         # Downcast aggressively
@@ -82,7 +80,7 @@ def main():
             on="cluster_id",
             how="inner",
         )
-        chunk.to_parquet(PROCESSED_DATA_DIR / f"dataset_{i:5d}")
+        chunk.to_parquet(PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet")
         if chunk.empty:
             logger.info(f"{len(chunk)} valid ids found. Skipping writing.")
             continue
