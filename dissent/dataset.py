@@ -16,84 +16,78 @@ def process(dockets: pd.DataFrame, opinion_clusters: pd.DataFrame):
 
 def main():
     """
-    Memory-efficient merge of dockets, opinions, and opinion clusters.
+    Memory-efficient merge of dockets, opinion clusters, and opinions.
     """
 
-    # ---- 1. Load SMALLER tables first (column-pruned) ----
+    # ---- 1. Load SMALL tables (column-pruned) ----
     dockets = pd.read_csv(
         RAW_DATA_DIR / "dockets-2024-12-31.csv.bz2",
         usecols=["id", "date_created", "court_id"],
         quotechar="`",
         compression="bz2",
-    )
-    print("Dockets Loaded")
-    logger.debug(
-        f"Docket columns: {dockets.columns}",
-    )
+    ).rename(columns={"id": "docket_id"})
+
+    logger.info("Dockets loaded")
+
     opinion_clusters = pd.read_csv(
         RAW_DATA_DIR / "opinion-clusters-2024-12-31.csv.bz2",
-        # usecols=["id", "date_filed", "docket_id"],
+        usecols=["id", "date_filed", "docket_id"],
         quotechar="`",
         compression="bz2",
-    )
-    print("Clusters Loaded")
-    logger.debug(
-        f"Opinions cluster columns: {opinion_clusters.columns}",
-    )
-    # ---- 2. Merge small tables first ----
-    base = dockets.merge(opinion_clusters, left_on="id", right_on="docket_id", how="inner")
-    base["id_x"] = pd.to_numeric(base["id_x"], errors="raise").astype("int64")
-    base = base.rename(columns={"id_x": "cluster_id"})
+    ).rename(columns={"id": "cluster_id"})
 
+    logger.info("Opinion clusters loaded")
+
+    # ---- 2. Merge dockets ↔ clusters ----
+    base = opinion_clusters.merge(
+        dockets,
+        on="docket_id",
+        how="inner",
+    )
+
+    # Enforce dtypes
     base["cluster_id"] = base["cluster_id"].astype("int64")
-
-    base = base.drop(columns=["id_y"], errors="ignore")
+    base["court_id"] = base["court_id"].astype("str")
 
     logger.debug(f"Base columns: {base.columns}")
-    # Optional: filter courts EARLY
-    # base = base[base["court_id"].isin(RELEVANT_COURTS)]
+    # ['cluster_id', 'date_filed', 'docket_id', 'date_created', 'court_id']
 
-    # ---- 4. Prepare Parquet writer ----
-
-    # ---- 5. Stream opinions in chunks ----
+    # ---- 3. Stream opinions in chunks ----
     i = 0
     for chunk in tqdm(
         pd.read_csv(
             RAW_DATA_DIR / "opinions-2024-12-31.csv.bz2",
-            usecols=[
-                "id",
-                "cluster_id",
-                "plain_text",
-                "author_id",
-            ],
+            usecols=["id", "cluster_id", "plain_text", "author_id"],
             quotechar="`",
             compression="bz2",
-            chunksize=1_000_000,  # tune based on RAM
+            chunksize=100_000,
         )
     ):
-        # Downcast aggressively
-        chunk["id"] = chunk["id"].astype("int64")
-        chunk["cluster_id"] = pd.to_numeric(chunk["cluster_id"], errors="raise").astype("int64")
+        if chunk.empty:
+            continue
 
-        logger.debug(f"Opinions columns: {chunk.columns}")
-        # Filter BEFORE merge
-        merged = base.merge(
-            chunk,
+        chunk["cluster_id"] = chunk["cluster_id"].astype("int64")
+
+        # ---- 4. Merge opinions ↔ base ----
+        merged = chunk.merge(
+            base[["cluster_id", "court_id", "date_filed"]],
             on="cluster_id",
             how="inner",
         )
-        print(merged.columns)
-        merged = merged[["cluster_id", "court_id", "plain_text", "date_filed"]]
-        print(merged.head(n=5))
-        merged.to_parquet(PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet")
-        if chunk.empty:
-            logger.info(f"{len(chunk)} valid ids found. Skipping writing.")
+
+        if merged.empty:
+            logger.info("No matching opinions in this chunk")
             continue
 
-        logger.info(f"{len(merged)} valid ids found.")
+        merged = merged[["cluster_id", "court_id", "date_filed", "plain_text"]]
 
+        merged.to_parquet(
+            PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet",
+            index=False,
+        )
+
+        logger.info(f"Wrote {len(merged)} opinions")
         i += 1
 
 
-if __name__ == "__main__":
-    main()
+main()
