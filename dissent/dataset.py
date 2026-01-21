@@ -26,6 +26,7 @@ def main():
         quotechar="`",
         compression="bz2",
     )
+    print("Dockets Loaded")
     logger.debug(
         f"Docket columns: {dockets.columns}",
     )
@@ -35,6 +36,7 @@ def main():
         quotechar="`",
         compression="bz2",
     )
+    print("Clusters Loaded")
     logger.debug(
         f"Opinions cluster columns: {opinion_clusters.columns}",
     )
@@ -66,7 +68,7 @@ def main():
             ],
             quotechar="`",
             compression="bz2",
-            chunksize=500_000,  # tune based on RAM
+            chunksize=1_000_000,  # tune based on RAM
         )
     ):
         # Downcast aggressively
@@ -80,12 +82,15 @@ def main():
             on="cluster_id",
             how="inner",
         )
-        chunk.to_parquet(PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet")
+        print(merged.columns)
+        merged = merged[["cluster_id", "court_id", "plain_text", "date_filed"]]
+        print(merged.head(n=5))
+        merged.to_parquet(PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet")
         if chunk.empty:
             logger.info(f"{len(chunk)} valid ids found. Skipping writing.")
             continue
 
-        logger.info(f"{len(chunk)} valid ids found.")
+        logger.info(f"{len(merged)} valid ids found.")
 
         i += 1
 
