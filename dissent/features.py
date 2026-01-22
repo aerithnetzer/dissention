@@ -45,7 +45,7 @@ def main():
                 continue
 
         with Pool(WORKERS) as p:
-            preprocessed_docs = list(tqdm(p.imap(preprocess_text, docs), total=len(docs)))
+            preprocessed_sentences = list(tqdm(p.imap(preprocess_text, docs), total=len(docs)))
 
         model = Word2Vec(
             vector_size=100,
