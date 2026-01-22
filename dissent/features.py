@@ -12,6 +12,13 @@ from nltk.tokenize import word_tokenize
 from multiprocessing import Pool
 
 
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s : %(levelname)s : %(message)s",
+    level=logging.INFO,
+)
+
 WORKERS = 16
 
 app = typer.Typer()
