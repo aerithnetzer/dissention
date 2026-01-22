@@ -9,12 +9,12 @@ from gensim.models import Word2Vec
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import glob
-import os
-import certifi
+from multiprocessing import Pool
+
+
+WORKERS = 16
 
 app = typer.Typer()
-os.environ["SSL_CERT_FILE"] = certifi.where()
 nltk.download("punkt_tab")
 nltk.download("stopwords")
 
@@ -27,38 +27,31 @@ def preprocess_text(text):
 
 
 @app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    input_path: Path = PROCESSED_DATA_DIR / "test.parquet",
-    output_path: Path = PROCESSED_DATA_DIR / "features.csv",
-    # -----------------------------------------
-):
+def main():
     # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    print(str())
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
-        print(file)
         docs = []
         df = pd.read_parquet(file)
-        for _, row in tqdm(df.iterrows(), total=len(df)):
+        for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
                 for o in opinions:
                     opinion_text = o.get("opinion_text")
-                    docs.append(opinion_text)
-                    print(type(opinion_text))
+                    if opinion_text is not None:
+                        docs.append(opinion_text)
+                    else:
+                        continue
             else:
                 continue
 
-        logger.success("Features generation complete.")
-        # -----------------------------------------
-        # # Preprocess sentences
-        preprocessed_sentences = [preprocess_text(sentence) for sentence in tqdm(docs)]
+        with Pool(WORKERS) as p:
+            preprocessed_docs = list(tqdm(p.imap(preprocess_text, docs), total=len(docs)))
 
         model = Word2Vec(
             vector_size=100,
             window=5,
             min_count=1,
-            workers=4,
+            workers=16,
             sg=1,
         )
 
@@ -73,7 +66,8 @@ def main(
             epochs=5,
         )
 
-        model.save(f"word2vec_shard_{i:05d}.model")  # Most similar words to 'cat'
+        model.save(f"word2vec_checkpoint_{i:05d}.model")  # Most similar words to 'cat'
+        logger.success("Features generation complete.")
         try:
             similar_words_cat = model.wv.most_similar("opinion", topn=5)
             print("Most similar words to 'opinion':", similar_words_cat)
