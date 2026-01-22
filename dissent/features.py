@@ -32,50 +32,52 @@ def main(
     # -----------------------------------------
 ):
     # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Generating features from dataset...")
-    df = pd.read_parquet(input_path)
-    logger.info(f"Length of df:\n {len(df)}")
-    docs = []
-    for file in glob.glob("../data/processed/part*")
+    print(str())
+    for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
+        print(file)
+        docs = []
         df = pd.read_parquet(file)
         for _, row in tqdm(df.iterrows(), total=len(df)):
             opinions = row.get("opinions")
-            for o in opinions:
-                opinion_text = o.get("opinion_text")
-                docs.append(opinion_text)
-                print(type(opinion_text))
+            if opinions is not None:
+                for o in opinions:
+                    opinion_text = o.get("opinion_text")
+                    docs.append(opinion_text)
+                    print(type(opinion_text))
+            else:
+                continue
 
-    logger.success("Features generation complete.")
-    # -----------------------------------------
-    # # Preprocess sentences
-    preprocessed_sentences = [preprocess_text(sentence) for sentence in tqdm(docs)]
+        logger.success("Features generation complete.")
+        # -----------------------------------------
+        # # Preprocess sentences
+        preprocessed_sentences = [preprocess_text(sentence) for sentence in tqdm(docs)]
 
-    model = Word2Vec(
-        vector_size=100,
-        window=5,
-        min_count=1,
-        workers=4,
-        sg=1,
-    )
+        model = Word2Vec(
+            vector_size=100,
+            window=5,
+            min_count=1,
+            workers=4,
+            sg=1,
+        )
 
-    model.build_vocab(preprocessed_sentences)
+        model.build_vocab(preprocessed_sentences)
 
-    if not model.wv.key_to_index:
-        raise ValueError("Vocabulary is empty after build_vocab")
+        if not model.wv.key_to_index:
+            raise ValueError("Vocabulary is empty after build_vocab")
 
-    model.train(
-        preprocessed_sentences,
-        total_examples=len(preprocessed_sentences),
-        epochs=5,
-    )
+        model.train(
+            preprocessed_sentences,
+            total_examples=len(preprocessed_sentences),
+            epochs=5,
+        )
 
-    model.save("word2vec.model")  # Most similar words to 'cat'
-    try:
-        similar_words_cat = model.wv.most_similar("opinion", topn=5)
-        print("Most similar words to 'opinion':", similar_words_cat)
-    except KeyError as e:
-        print(f"KeyError: {e}")
+        model.save(f"word2vec_shard_{i:05d}.model")  # Most similar words to 'cat'
+        try:
+            similar_words_cat = model.wv.most_similar("opinion", topn=5)
+            print("Most similar words to 'opinion':", similar_words_cat)
+        except KeyError as e:
+            print(f"KeyError: {e}")
 
 
 if __name__ == "__main__":
-    app()
+    main()
