@@ -61,8 +61,11 @@ download:
 ## Make dataset
 .PHONY: data
 data:
-	uv run python -m cudf.pandas dissent/dataset.py
+	uv run hf download harvard-lil/cold-cases --repo-type dataset --local-dir data/processed/
 
+.PHONY: features
+features:
+	uv run dissent/features.py
 ## Set up Python interpreter environment
 .PHONY: create_environment
 create_environment:
