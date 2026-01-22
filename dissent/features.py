@@ -10,9 +10,11 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import glob
+import os
+import certifi
 
 app = typer.Typer()
-
+os.environ["SSL_CERT_FILE"] = certifi.where()
 nltk.download("punkt_tab")
 nltk.download("stopwords")
 
