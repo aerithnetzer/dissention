@@ -4,13 +4,13 @@ from loguru import logger
 from tqdm import tqdm
 import typer
 from sentence_transformers import SentenceTransformer
-from dissent.config import PROCESSED_DATA_DIR
+from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR
 from gensim.models import Word2Vec
 import nltk
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, words
 from nltk.tokenize import word_tokenize
 from multiprocessing import Pool
-
+import os
 
 import logging
 
@@ -18,18 +18,24 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-
-WORKERS = 16
-
+OUTPUT_DIR = MODELS_DIR / "iteration_0002"
+_ = os.makedirs(OUTPUT_DIR, exist_ok=True)
+WORKERS = 32
 app = typer.Typer()
 nltk.download("punkt_tab")
 nltk.download("stopwords")
+nltk.download("words")
 
 
 def preprocess_text(text):
     stop_words = set(stopwords.words("english"))
+    english_words = set(words.words())
     tokens = word_tokenize(text.lower())
-    tokens = [word for word in tokens if word.isalpha() and word not in stop_words]
+    tokens = [
+        word
+        for word in tokens
+        if word.isalpha() and word not in stop_words and word in english_words
+    ]
     return tokens
 
 
@@ -39,6 +45,7 @@ def main():
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
+        df = df[:50]
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
@@ -58,7 +65,7 @@ def main():
             vector_size=100,
             window=5,
             min_count=1,
-            workers=16,
+            workers=WORKERS,
             sg=1,
         )
 
@@ -73,7 +80,9 @@ def main():
             epochs=5,
         )
 
-        model.save(f"word2vec_checkpoint_{i:05d}.model")  # Most similar words to 'cat'
+        model.save(
+            str(OUTPUT_DIR / f"word2vec_checkpoint_{i:05d}.model")
+        )  # Most similar words to 'cat'
         logger.success("Features generation complete.")
         try:
             similar_words_cat = model.wv.most_similar("opinion", topn=5)
