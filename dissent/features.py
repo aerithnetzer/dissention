@@ -18,7 +18,7 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-OUTPUT_DIR = MODELS_DIR / "iteration_0002"
+OUTPUT_DIR = MODELS_DIR / "iteration_0003"
 _ = os.makedirs(OUTPUT_DIR, exist_ok=True)
 WORKERS = 32
 app = typer.Typer()
@@ -45,6 +45,7 @@ def main():
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
+        df = df[:500]
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
@@ -63,7 +64,7 @@ def main():
         model = Word2Vec(
             vector_size=100,
             window=5,
-            min_count=1,
+            min_count=10,
             workers=WORKERS,
             sg=1,
         )
