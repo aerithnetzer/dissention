@@ -21,9 +21,19 @@ def main():
     model_path = str(model_files[-1])
     model = Word2Vec.load(model_path)
     sims = model.wv.most_similar("dissent")
-    print(sims)
+    print(f"{sims}\n\n")
     sims = model.wv.most_similar("concur")
-    print(sims)
+    print(f"{sims}\n\n")
+    sims = model.wv.most_similar("murder")
+    print(f"{sims}\n\n")
+    sims = model.wv.most_similar("constitution")
+    print(f"{sims}\n\n")
+    sims = model.wv.most_similar("constitution")
+    print(f"{sims}\n\n")
+    sims = model.wv.most_similar("precedent")
+    print(f"{sims}\n\n")
+    sims = model.wv.most_similar("precedent")
+    print(f"{sims}\n\n")
 
 
 if __name__ == "__main__":
