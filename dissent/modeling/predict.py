@@ -1,30 +1,30 @@
-from pathlib import Path
-
-from loguru import logger
-from tqdm import tqdm
 import typer
+from dissent.config import MODELS_DIR
+from gensim.models import Word2Vec
+import os
 
-from dissent.config import MODELS_DIR, PROCESSED_DATA_DIR
+import logging
 
+logging.basicConfig(
+    format="%(asctime)s : %(levelname)s : %(message)s",
+    level=logging.INFO,
+)
+OUTPUT_DIR = MODELS_DIR / "iteration_0003"
+_ = os.makedirs(OUTPUT_DIR, exist_ok=True)
+WORKERS = 32
 app = typer.Typer()
 
 
 @app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    features_path: Path = PROCESSED_DATA_DIR / "test_features.csv",
-    model_path: Path = MODELS_DIR / "model.pkl",
-    predictions_path: Path = PROCESSED_DATA_DIR / "test_predictions.csv",
-    # -----------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Performing inference for model...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Inference complete.")
-    # -----------------------------------------
+def main():
+    model_files = OUTPUT_DIR.rglob("*.model")
+    model_path = model_files[-1]
+    model = Word2Vec.load(model_path)
+    sims = model.wv.most_similar("dissent")
+    print(sims)
+    sims = model.wv.most_similar("concur")
+    print(sims)
 
 
 if __name__ == "__main__":
-    app()
+    main()
