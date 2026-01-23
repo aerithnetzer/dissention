@@ -17,7 +17,7 @@ app = typer.Typer()
 
 @app.command()
 def main():
-    model_files = OUTPUT_DIR.rglob("*.model")
+    model_files = sorted(list(OUTPUT_DIR.glob("*.model")))
     model_path = model_files[-1]
     model = Word2Vec.load(model_path)
     sims = model.wv.most_similar("dissent")
