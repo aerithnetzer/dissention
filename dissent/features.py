@@ -45,7 +45,6 @@ def main():
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
-        df = df[:50]
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
