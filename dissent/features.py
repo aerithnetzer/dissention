@@ -18,9 +18,9 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-OUTPUT_DIR = MODELS_DIR / "iteration_0003"
+OUTPUT_DIR = MODELS_DIR / "iteration_0005"
 _ = os.makedirs(OUTPUT_DIR, exist_ok=True)
-WORKERS = 32
+WORKERS = 64
 app = typer.Typer()
 
 
@@ -49,6 +49,9 @@ def main():
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
+        print(f"Length before filtering: {len(df)}")
+        df = df[df["court_type"] == "S"]
+        print(f"Length after filtering: {len(df)}")
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
