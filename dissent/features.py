@@ -22,9 +22,6 @@ OUTPUT_DIR = MODELS_DIR / "iteration_0003"
 _ = os.makedirs(OUTPUT_DIR, exist_ok=True)
 WORKERS = 32
 app = typer.Typer()
-nltk.download("punkt_tab")
-nltk.download("stopwords")
-nltk.download("words")
 
 
 def preprocess_text(text):
@@ -42,10 +39,16 @@ def preprocess_text(text):
 @app.command()
 def main():
     # ---- REPLACE THIS WITH YOUR OWN CODE ----
+    model = Word2Vec(
+        vector_size=100,
+        window=5,
+        min_count=10,
+        workers=WORKERS,
+        sg=1,
+    )
     for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
-        df = df[:500]
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
@@ -61,15 +64,10 @@ def main():
         with Pool(WORKERS) as p:
             preprocessed_sentences = list(tqdm(p.imap(preprocess_text, docs), total=len(docs)))
 
-        model = Word2Vec(
-            vector_size=100,
-            window=5,
-            min_count=10,
-            workers=WORKERS,
-            sg=1,
-        )
-
-        model.build_vocab(preprocessed_sentences)
+        if i == 0:
+            model.build_vocab(preprocessed_sentences)
+        else:
+            model.build_vocab(preprocessed_sentences, update=True)
 
         if not model.wv.key_to_index:
             raise ValueError("Vocabulary is empty after build_vocab")
@@ -77,7 +75,7 @@ def main():
         model.train(
             preprocessed_sentences,
             total_examples=len(preprocessed_sentences),
-            epochs=5,
+            epochs=10,
         )
 
         model.save(
