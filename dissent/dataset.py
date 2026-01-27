@@ -10,6 +10,22 @@ from dissent.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
 app = typer.Typer()
 
 
+def load_harvard_dataset():
+    from datasets import load_dataset
+
+    ds = load_dataset(
+        "harvard-lil/cold-cases",
+    )
+
+    ds.save_to_disk(PROCESSED_DATA_DIR)
+
+    return None
+
+
+def load_parquet_files():
+    "../data/processed/shard_00000.parquet"
+
+
 def main():
     """
     Memory-efficient merge of opinions with opinion clusters and dockets.
@@ -109,4 +125,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    load_harvard_dataset()
