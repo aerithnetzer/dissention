@@ -9,17 +9,12 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-OUTPUT_DIR = MODELS_DIR / "iteration_0005"
-_ = os.makedirs(OUTPUT_DIR, exist_ok=True)
-WORKERS = 32
 app = typer.Typer()
-
 
 @app.command()
 def main():
-    model_files = sorted(list(OUTPUT_DIR.glob("*.model")))
-    model_path = str(model_files[-1])
-    model = Word2Vec.load(model_path)
+    model_path = MODELS_DIR / "word2vec.model"
+    model = Word2Vec.load(str(model_path)) #type casting 1 + int("1")
 
     words_to_test = [
         "undemocratic",
