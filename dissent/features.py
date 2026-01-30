@@ -7,7 +7,7 @@ from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR, RAW_DATA_DIR
 from gensim.models import Word2Vec
 from nltk.corpus import stopwords, words
 from nltk.tokenize import word_tokenize
-from nltk.stem.porter import *
+from nltk.stem import WordNetLemmatizer
 from multiprocessing import Pool
 import os
 
@@ -17,19 +17,19 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-OUTPUT_DIR = MODELS_DIR / "iteration_0006"
+OUTPUT_DIR = MODELS_DIR / "iteration_0007"
 _ = os.makedirs(OUTPUT_DIR, exist_ok=True)
 WORKERS = 64
 app = typer.Typer()
 
 
 def preprocess_text(text):
-    stemmer = PorterStemmer()
+    lemmatizer = WordNetLemmatizer()
     stop_words = set(stopwords.words("english"))
     english_words = set(words.words())
     tokens = word_tokenize(text.lower())
     tokens = [
-        stemmer.stem(word)
+        lemmatizer.lemmatize(word)
         for word in tokens
         if word.isalpha() and word not in stop_words and word in english_words
     ]
