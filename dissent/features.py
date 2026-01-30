@@ -10,9 +10,10 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from multiprocessing import Pool
 import os
-
+import nltk
 import logging
 
+nltk.download("wordnet")
 logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
