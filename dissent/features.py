@@ -5,7 +5,6 @@ from tqdm import tqdm
 import typer
 from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR, RAW_DATA_DIR
 from gensim.models import Word2Vec
-import nltk
 from nltk.corpus import stopwords, words
 from nltk.tokenize import word_tokenize
 from nltk.stem.porter import *
