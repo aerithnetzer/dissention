@@ -3,12 +3,12 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 import typer
-from sentence_transformers import SentenceTransformer
-from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR
+from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR, RAW_DATA_DIR
 from gensim.models import Word2Vec
 import nltk
 from nltk.corpus import stopwords, words
 from nltk.tokenize import word_tokenize
+from nltk.stem.porter import *
 from multiprocessing import Pool
 import os
 
@@ -18,18 +18,19 @@ logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
     level=logging.INFO,
 )
-OUTPUT_DIR = MODELS_DIR / "iteration_0005"
+OUTPUT_DIR = MODELS_DIR / "iteration_0006"
 _ = os.makedirs(OUTPUT_DIR, exist_ok=True)
 WORKERS = 64
 app = typer.Typer()
 
 
 def preprocess_text(text):
+    stemmer = PorterStemmer()
     stop_words = set(stopwords.words("english"))
     english_words = set(words.words())
     tokens = word_tokenize(text.lower())
     tokens = [
-        word
+        stemmer.stem(word)
         for word in tokens
         if word.isalpha() and word not in stop_words and word in english_words
     ]
@@ -40,18 +41,19 @@ def preprocess_text(text):
 def main():
     # ---- REPLACE THIS WITH YOUR OWN CODE ----
     model = Word2Vec(
-        vector_size=100,
+        vector_size=300,
         window=5,
-        min_count=10,
+        min_count=20,
         workers=WORKERS,
         sg=1,
     )
-    for i, file in tqdm(enumerate(PROCESSED_DATA_DIR.rglob("part*"))):
+    for i, file in tqdm(enumerate(RAW_DATA_DIR.rglob("part*"))):
         docs = []
         df = pd.read_parquet(file)
         print(f"Length before filtering: {len(df)}")
         df = df[df["court_type"] == "S"]
-        print(f"Length after filtering: {len(df)}")
+        df["year"] = df["date_filed"].astype(str).str.extract(r"(\d{4})")[0].astype(int)
+        df.to_parquet(PROCESSED_DATA_DIR / f"shard_{i:05d}.parquet")
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             opinions = row.get("opinions")
             if opinions is not None:
