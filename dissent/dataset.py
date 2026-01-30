@@ -40,8 +40,8 @@ def main():
     """
         # Filter by date
     df = pd.concat([pd.read_parquet(f) for f in tqdm(PROCESSED_DATA_DIR.rglob("*.parquet"))])
-    df["year"] = df["date_filed"].astype(str).str.extract(r"(\d{4})")[0].astype(int)
-    df = df[df["year"] > 2018]
+    df["year"] = df["date_filed"].astype(str).str.extract(r"(\d{4})")[0].astype(int) #regx
+    df = df[df["year"] > 2018 & df["year" < 2026]]
     df = df[df["court_type"] == "S"]
     df2 = df[
     df["court_jurisdiction"].isin(["North Carolina, NC", "Alabama, AL"])

@@ -60,21 +60,5 @@ def main():
     # Print matrix
     print(similarity_matrix)
 
-    # Filter by date
-    df = pd.concat([pd.read_parquet(f) for f in tqdm(PROCESSED_DATA_DIR.rglob("*.parquet"))])
-    df["year"] = df["date_filed"].astype(str).str.extract(r"(\d{4})")[0].astype(int)
-    df = df[df["year"] > 2018]
-    df = df[df["court_type"] == "S"]
-    df2 = df[
-    df["court_jurisdiction"].isin(["North Carolina, NC", "Alabama, AL"])
-    ].copy()
-    print(df2.head())
-    df2.to_parquet(PROCESSED_DATA_DIR / "dataset.parquet")
-
-#        opinions = row.get("opinions")
-#        if opinions is not None:   
-#            for o in opinions:
-#                opinion_text = o.get("opinion_text")
-
 if __name__ == "__main__":
     main()

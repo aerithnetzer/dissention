@@ -1,18 +1,24 @@
+# Standard library
+import logging
+import os
+from multiprocessing import Pool
 from pathlib import Path
+
+# Third-party libraries
 import pandas as pd
+import typer
 from loguru import logger
 from tqdm import tqdm
-import typer
-from sentence_transformers import SentenceTransformer
-from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR
 from gensim.models import Word2Vec
+from sentence_transformers import SentenceTransformer
+
+# NLTK
 import nltk
 from nltk.corpus import stopwords, words
 from nltk.tokenize import word_tokenize
-from multiprocessing import Pool
-import os
 
-import logging
+# Local application imports
+from dissent.config import PROCESSED_DATA_DIR, MODELS_DIR
 
 logging.basicConfig(
     format="%(asctime)s : %(levelname)s : %(message)s",
@@ -35,10 +41,8 @@ def preprocess_text(text):
     ]
     return tokens
 
-
 @app.command()
 def main():
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
     model = Word2Vec(
         vector_size=100,
         window=5,
@@ -83,11 +87,11 @@ def main():
 
         model.save(
             str(OUTPUT_DIR / f"word2vec_checkpoint_{i:05d}.model")
-        )  # Most similar words to 'cat'
+        )
         logger.success("Features generation complete.")
         try:
-            similar_words_cat = model.wv.most_similar("opinion", topn=5)
-            print("Most similar words to 'opinion':", similar_words_cat)
+            similar_words_dissent = model.wv.most_similar("dissent", topn=5)
+            print("Most similar words to 'dissent':", similar_words_dissent)
         except KeyError as e:
             print(f"KeyError: {e}")
 
